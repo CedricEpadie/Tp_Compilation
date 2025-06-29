@@ -1,9 +1,0 @@
-//code qui determine si un nombre est pair ou impair 
-
-yebege("entrer un nombre et on vous dira s'il est pair ou impair");
-lange a;
-soo(a % 2 == 0) tebo
-    yebege("Le nombre est pair");
-tesooba
-    yebege("Le nombre est impair");
-owusoo

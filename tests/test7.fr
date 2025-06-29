@@ -1,8 +1,0 @@
-//Calculer et afficher les 5 premières puissances de 2
-
-a = 1;
-mpo(i = 1; i < 6; i = i + 1) ke
-    a = a * 2;
-    yebege a;
-owumpo
-
