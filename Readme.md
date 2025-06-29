@@ -5,15 +5,13 @@ make
 
 ##  compiler un des fichier de test contenu dans le dossier 'tests'
 ```
-./compilateur tests/testx.fr         // où x est une variable qui va de 1 à 10 . 
+make test FILE=nom du fichier         // où x est une variable qui va de 1 à 10 . 
 ```
 -   un fichier 'output.c' est crée et vous pouvez voir le code C resultant.
 
 ##  Executer le code C correspondant à notre fichier test compilé
 ```
-gcc output.c -o programme
-
-./programme
+make exec
 ```
 
 
