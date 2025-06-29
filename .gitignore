@@ -1,0 +1,11 @@
+/tests
+langage.tab.c
+langage.tab.h
+lex.yy.c
+compilateur
+output.c
+programme
+compilateur.o
+output.o
+langage.tab.o
+lex.yy.o
