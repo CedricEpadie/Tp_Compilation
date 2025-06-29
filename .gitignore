@@ -1,4 +1,4 @@
-/tests
+tests/
 langage.tab.c
 langage.tab.h
 lex.yy.c
