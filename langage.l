@@ -26,6 +26,7 @@
 "yebege"    { return AFFICHER; }
 "lange"        { return LIRE; }
 ":"           { return DEUX_POINTS; }
+"?"           { return INTERROGATION; }
 
 [0-9]+        { yylval.entier = atoi(yytext); return NOMBRE; }
 [a-zA-Z_][a-zA-Z0-9_]* { yylval.nom = strdup(yytext); return IDENTIFIANT; }

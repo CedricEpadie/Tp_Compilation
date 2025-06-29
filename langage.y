@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "utils.h"
 
 void yyerror(const char* s);
 int yylex();
@@ -129,6 +130,7 @@ int main(int argc, char** argv) {
 %token EGAL DIFF INFEG SUPEG INF SUP
 %token ASSIGN PLUS MOINS FOIS DIV MOD
 %token POINTVIRGULE VIRGULE PARENTHESE_OUVRANTE PARENTHESE_FERMANTE
+%token INTERROGATION
 
 %type <nom> expression
 %type <code> assignment
@@ -371,6 +373,15 @@ expression:
     }
   | PARENTHESE_OUVRANTE expression PARENTHESE_FERMANTE {
         $$ = $2;
+    }
+    | expression INTERROGATION expression DEUX_POINTS expression {
+        // Génère : "(cond ? then : else)"
+        char* part1 = concat3("(", $1, " ? ");
+        char* part2 = concat3(part1, $3, " : ");
+        free(part1);
+        char* part3 = concat3(part2, $5, ")");
+        free(part2);
+        $$ = part3;
     }
 ;
 
