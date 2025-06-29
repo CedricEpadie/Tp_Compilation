@@ -1,0 +1,8 @@
+// code qui demontre le signalement des erreurs syntaxique par le compilateur
+
+yebege("ce code (test2.fr) est un code qui demontre le signalement des erreurs syntaxique par le compilateur");
+a = 6;
+b = 4 + 3 * a;
+c = b
+yebege c;
+

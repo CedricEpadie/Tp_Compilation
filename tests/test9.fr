@@ -1,0 +1,17 @@
+//code qui determine la cotegorie d'un enfant selon son age
+
+yebege("entrer l'age de l'enfant et on vous donnera sa categorie");
+
+lange age;
+
+yebega(age)
+ndamba 1:
+    yebege("Bébé");
+ndamba 2:
+    yebege("Enfant");
+ndamba 3:
+    yebege("Adolescent");
+ndamba 4:
+    yebege("Adulte");
+aneayem: yebege("autre");
+owuyebega

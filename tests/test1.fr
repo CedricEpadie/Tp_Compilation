@@ -1,0 +1,6 @@
+//code illustratif  du signalement de l'erreur lexical par le compilateur
+
+yebege("ce code mais en lumiere la detection et la determination des erreurs lexicale");
+lange a;
+yebege b;
+@a = 4 + 3;

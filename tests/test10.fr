@@ -1,0 +1,19 @@
+//code qui resous une equation de la forme ax+b=0
+
+yebege("lire le a de l'equation");
+lange a;
+yebege("lire le b de l'equation");
+lange b;
+
+soo(a == 0) tebo
+    soo(b == 0) tebo
+        yebege("Infinité de solutions");
+    tesooba
+        yebege("Aucune solution");
+    owusoo
+tesooba
+    x = b / a;
+    x = 0 - x;
+    yebege("Solution unique : ");
+    yebege x;
+owusoo

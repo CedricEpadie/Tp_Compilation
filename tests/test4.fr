@@ -1,0 +1,12 @@
+//code pris dans le support de l'enseignant
+
+a = 0;
+lange b;
+lange c;
+angaha(a < c) ke
+    a = a + b;
+    soo(a != 2) tebo
+        yebege a;
+    owusoo
+owuangaha
+

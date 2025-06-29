@@ -1,0 +1,11 @@
+// code qui affiche les 10 premiers multiples d'un nombre
+
+lange x;
+a = 0;
+i = 1;
+
+ke
+    a = x * i;
+    yebege a;
+    i = i + 1;
+angaha(i <= 10);
