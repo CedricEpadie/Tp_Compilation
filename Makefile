@@ -1,3 +1,5 @@
+FILE ?= inconnu
+
 all:
 
 	bison -d langage.y
@@ -8,3 +10,12 @@ clean:
 
 	rm -f langage.tab.c langage.tab.h lex.yy.c compilateur output.c programme
 	clear
+
+test:
+
+	./compilateur tests/$(FILE)
+
+exec:
+
+	gcc output.c -o programme
+	./programme
