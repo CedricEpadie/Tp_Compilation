@@ -17,22 +17,46 @@ extern char* yytext;    // texte du jeton fautif
 
 #define MAX_VARS 100
 #define MAX_CODE 10000
-char* variables[MAX_VARS];
+
+// Structure pour gérer les tableaux
+typedef struct {
+    char* nom;
+    int taille;
+    bool est_tableau;
+} Variable;
+
+Variable variables[MAX_VARS];
 int nb_vars = 0;
 char code_buffer[MAX_CODE];
 int code_length = 0;
 int indent_level = 0;
 
-bool variable_existe(const char* nom) {
+Variable* trouver_variable(const char* nom) {
     for (int i = 0; i < nb_vars; ++i) {
-        if (strcmp(variables[i], nom) == 0) return true;
+        if (strcmp(variables[i].nom, nom) == 0) return &variables[i];
     }
-    return false;
+    return NULL;
+}
+
+bool variable_existe(const char* nom) {
+    return trouver_variable(nom) != NULL;
 }
 
 void ajouter_variable(const char* nom) {
     if (!variable_existe(nom)) {
-        variables[nb_vars++] = strdup(nom);
+        variables[nb_vars].nom = strdup(nom);
+        variables[nb_vars].taille = 0;
+        variables[nb_vars].est_tableau = false;
+        nb_vars++;
+    }
+}
+
+void ajouter_tableau(const char* nom, int taille) {
+    if (!variable_existe(nom)) {
+        variables[nb_vars].nom = strdup(nom);
+        variables[nb_vars].taille = taille;
+        variables[nb_vars].est_tableau = true;
+        nb_vars++;
     }
 }
 
@@ -89,12 +113,14 @@ int main(int argc, char** argv) {
     code_buffer[0] = '\0';
     yyparse();
 
-    if (nb_vars > 0) {
-        fprintf(output, "\tint ");
-        for (int i = 0; i < nb_vars; i++) {
-            fprintf(output, "%s%s", variables[i], (i == nb_vars - 1) ? ";\n" : ", ");
-            free(variables[i]);
+    // Déclaration des variables et tableaux
+    for (int i = 0; i < nb_vars; i++) {
+        if (variables[i].est_tableau) {
+            fprintf(output, "\tint %s[%d];\n", variables[i].nom, variables[i].taille);
+        } else {
+            fprintf(output, "\tint %s;\n", variables[i].nom);
         }
+        free(variables[i].nom);
     }
 
     // Ajout du code généré une seule fois
@@ -119,20 +145,21 @@ int main(int argc, char** argv) {
 
 %define parse.error verbose
 
-
 %token <nom> IDENTIFIANT TEXTE
 %token <entier> NOMBRE
 
 %token POUR SELON SI ALORS SINON FSI FSELON CAS DEUX_POINTS DEFAUT
 %token FAIRE FPOUR FTANTQUE TANTQUE
-%token AFFICHER LIRE
+%token AFFICHER LIRE TABLEAU
+%token INTERROGATION
 
 %token EGAL DIFF INFEG SUPEG INF SUP
 %token ASSIGN PLUS MOINS FOIS DIV MOD
 %token POINTVIRGULE VIRGULE PARENTHESE_OUVRANTE PARENTHESE_FERMANTE
-%token INTERROGATION
+%token CROCHET_OUVRANT CROCHET_FERMANT
 
 %type <nom> expression
+%type <nom> acces_tableau
 %type <code> assignment
 %type <code> switch_body
 %type <code> instruction
@@ -141,7 +168,7 @@ int main(int argc, char** argv) {
 %type <code> instructions
 %type <code> cas_blocks
 %type <code> defaut_block
-
+%type <code> declaration_tableau
 
 %left EGAL DIFF
 %left INF SUP INFEG SUPEG
@@ -179,6 +206,22 @@ instructions:
         free($2);
         $$ = buf;
     }
+  | instructions declaration_tableau {
+        char* buf = malloc(strlen($1) + strlen($2) + 1);
+        strcpy(buf, $1);
+        strcat(buf, $2);
+        free($1);
+        free($2);
+        $$ = buf;
+    }
+;
+
+declaration_tableau:
+    TABLEAU IDENTIFIANT CROCHET_OUVRANT NOMBRE CROCHET_FERMANT POINTVIRGULE {
+        ajouter_tableau($2, $4);
+        free($2);
+        $$ = strdup(""); // Pas de code généré pour la déclaration
+    }
 ;
 
 instruction:
@@ -195,17 +238,28 @@ instruction:
         $$ = strdup(buf);
         free($2);
     }
-    | AFFICHER PARENTHESE_OUVRANTE TEXTE PARENTHESE_FERMANTE POINTVIRGULE {
-      char* txt_sans_guillemets = enlever_guillemets($3);
-      char buf[256];
-      snprintf(buf, sizeof(buf), "printf(\"%s\\n\");\n", txt_sans_guillemets);
-      free(txt_sans_guillemets);
-      free($3);
-      $$ = strdup(buf);
-  }
-
+  | LIRE acces_tableau POINTVIRGULE {
+        char buf[256];
+        snprintf(buf, sizeof(buf), "scanf(\"%%d\", &%s);\n", $2);
+        $$ = strdup(buf);
+        free($2);
+    }
+  | AFFICHER PARENTHESE_OUVRANTE TEXTE PARENTHESE_FERMANTE POINTVIRGULE {
+        char* txt_sans_guillemets = enlever_guillemets($3);
+        char buf[256];
+        snprintf(buf, sizeof(buf), "printf(\"%s\\n\");\n", txt_sans_guillemets);
+        free(txt_sans_guillemets);
+        free($3);
+        $$ = strdup(buf);
+    }
   | AFFICHER IDENTIFIANT POINTVIRGULE {
         ajouter_variable($2);
+        char buf[256];
+        snprintf(buf, sizeof(buf), "printf(\"%%d\\n\", %s);\n", $2);
+        free($2);
+        $$ = strdup(buf);
+    }
+  | AFFICHER acces_tableau POINTVIRGULE {
         char buf[256];
         snprintf(buf, sizeof(buf), "printf(\"%%d\\n\", %s);\n", $2);
         free($2);
@@ -221,6 +275,34 @@ assignment:
         free($1);
         free($3);
         $$ = strdup(buf);
+    }
+  | acces_tableau ASSIGN expression {
+        char buf[256];
+        snprintf(buf, sizeof(buf), "%s = %s", $1, $3);
+        free($1);
+        free($3);
+        $$ = strdup(buf);
+    }
+;
+
+acces_tableau:
+    IDENTIFIANT CROCHET_OUVRANT expression CROCHET_FERMANT {
+        // Vérifier que la variable existe comme tableau
+        Variable* var = trouver_variable($1);
+        if (!var) {
+            fprintf(stderr, "Erreur : tableau '%s' non déclaré\n", $1);
+            exit(1);
+        }
+        if (!var->est_tableau) {
+            fprintf(stderr, "Erreur : '%s' n'est pas un tableau\n", $1);
+            exit(1);
+        }
+        
+        char* buf = malloc(strlen($1) + strlen($3) + 4);
+        sprintf(buf, "%s[%s]", $1, $3);
+        free($1);
+        free($3);
+        $$ = buf;
     }
 ;
 
@@ -263,14 +345,13 @@ control_structure:
         free($5);
         $$ = res;
     }
-    | SELON PARENTHESE_OUVRANTE expression PARENTHESE_FERMANTE switch_body FSELON {
+  | SELON PARENTHESE_OUVRANTE expression PARENTHESE_FERMANTE switch_body FSELON {
         char* buf = malloc(strlen($3) + strlen($5) + 64);
         sprintf(buf, "switch (%s) {\n%s}\n", $3, $5);
         $$ = buf;
         free($3);
         free($5);
     }
-
 ;
 
 iteration:
@@ -288,6 +369,9 @@ expression:
         ajouter_variable($1);
         $$ = strdup($1);
         free($1);
+    }
+  | acces_tableau {
+        $$ = $1;
     }
   | NOMBRE {
         char buffer[32];
@@ -357,14 +441,14 @@ expression:
         free($3);
         $$ = buf;
     }
-    | expression INFEG expression {
+  | expression INFEG expression {
         char* buf = malloc(strlen($1) + strlen($3) + 5);
         sprintf(buf, "%s<=%s", $1, $3);
         free($1);
         free($3);
         $$ = buf;
     }
-    | expression SUPEG expression {
+  | expression SUPEG expression {
         char* buf = malloc(strlen($1) + strlen($3) + 5);
         sprintf(buf, "%s>=%s", $1, $3);
         free($1);
@@ -401,7 +485,6 @@ cas_blocks:
     }
 ;
 
-
 defaut_block:
     DEFAUT DEUX_POINTS instructions {
         char* buf = malloc(64 + strlen($3));
@@ -432,4 +515,3 @@ void yyerror(const char* s) {
     if (yytext)
         fprintf(stderr, "Jeton fautif : '%s'\n", yytext);
 }
-

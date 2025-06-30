@@ -25,6 +25,7 @@
 "angaha"     { return TANTQUE; }
 "yebege"    { return AFFICHER; }
 "lange"        { return LIRE; }
+"tebele"      { return TABLEAU; }
 ":"           { return DEUX_POINTS; }
 "?"           { return INTERROGATION; }
 
@@ -48,6 +49,8 @@
 "*"           { return FOIS; }
 "/"           { return DIV; }
 "%"           { return MOD; }
+"["           { return CROCHET_OUVRANT; }
+"]"           { return CROCHET_FERMANT; }
 
 \"([^\\\"]*)\" { yylval.nom = strdup(yytext); return TEXTE; }
 
