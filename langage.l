@@ -10,22 +10,23 @@
 
 %%
 
-"mpo"        { return POUR; }
-"yebega"       { return SELON; }
-"soo"          { return SI; }
-"tebo"       { return ALORS; }
-"tesooba"       { return SINON; }
-"owusoo"         { return FSI; }
-"owuyebega"      { return FSELON; }
-"ndamba"         { return CAS; }
-"aneayem"      { return DEFAUT; }
-"ke"       { return FAIRE; }
-"owumpo"       { return FPOUR; }
-"owuangaha"    { return FTANTQUE; }
-"angaha"     { return TANTQUE; }
-"yebege"    { return AFFICHER; }
-"lange"        { return LIRE; }
+"mpo"         { return POUR; }
+"yebega"      { return SELON; }
+"soo"         { return SI; }
+"tebo"        { return ALORS; }
+"tesooba"     { return SINON; }
+"owusoo"      { return FSI; }
+"owuyebega"   { return FSELON; }
+"ndamba"      { return CAS; }
+"aneayem"     { return DEFAUT; }
+"ke"          { return FAIRE; }
+"owumpo"      { return FPOUR; }
+"owuangaha"   { return FTANTQUE; }
+"angaha"      { return TANTQUE; }
+"yebege"      { return AFFICHER; }
+"lange"       { return LIRE; }
 "tebele"      { return TABLEAU; }
+"afup"        { return MATRICE; }
 ":"           { return DEUX_POINTS; }
 "?"           { return INTERROGATION; }
 

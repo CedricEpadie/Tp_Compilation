@@ -18,11 +18,13 @@ extern char* yytext;    // texte du jeton fautif
 #define MAX_VARS 100
 #define MAX_CODE 10000
 
-// Structure pour gérer les tableaux
+// Structure pour gérer les tableaux et matrices
 typedef struct {
     char* nom;
-    int taille;
+    int taille1;
+    int taille2;
     bool est_tableau;
+    bool est_matrice;
 } Variable;
 
 Variable variables[MAX_VARS];
@@ -45,8 +47,10 @@ bool variable_existe(const char* nom) {
 void ajouter_variable(const char* nom) {
     if (!variable_existe(nom)) {
         variables[nb_vars].nom = strdup(nom);
-        variables[nb_vars].taille = 0;
+        variables[nb_vars].taille1 = 0;
+        variables[nb_vars].taille2 = 0;
         variables[nb_vars].est_tableau = false;
+        variables[nb_vars].est_matrice = false;
         nb_vars++;
     }
 }
@@ -54,8 +58,21 @@ void ajouter_variable(const char* nom) {
 void ajouter_tableau(const char* nom, int taille) {
     if (!variable_existe(nom)) {
         variables[nb_vars].nom = strdup(nom);
-        variables[nb_vars].taille = taille;
+        variables[nb_vars].taille1 = taille;
+        variables[nb_vars].taille2 = 0;
         variables[nb_vars].est_tableau = true;
+        variables[nb_vars].est_matrice = false;
+        nb_vars++;
+    }
+}
+
+void ajouter_matrice(const char* nom, int lignes, int colonnes) {
+    if (!variable_existe(nom)) {
+        variables[nb_vars].nom = strdup(nom);
+        variables[nb_vars].taille1 = lignes;
+        variables[nb_vars].taille2 = colonnes;
+        variables[nb_vars].est_tableau = false;
+        variables[nb_vars].est_matrice = true;
         nb_vars++;
     }
 }
@@ -115,8 +132,10 @@ int main(int argc, char** argv) {
 
     // Déclaration des variables et tableaux
     for (int i = 0; i < nb_vars; i++) {
-        if (variables[i].est_tableau) {
-            fprintf(output, "\tint %s[%d];\n", variables[i].nom, variables[i].taille);
+        if (variables[i].est_matrice) {
+            fprintf(output, "\tint %s[%d][%d];\n", variables[i].nom, variables[i].taille1, variables[i].taille2);
+        } else if (variables[i].est_tableau) {
+            fprintf(output, "\tint %s[%d];\n", variables[i].nom, variables[i].taille1);
         } else {
             fprintf(output, "\tint %s;\n", variables[i].nom);
         }
@@ -150,7 +169,7 @@ int main(int argc, char** argv) {
 
 %token POUR SELON SI ALORS SINON FSI FSELON CAS DEUX_POINTS DEFAUT
 %token FAIRE FPOUR FTANTQUE TANTQUE
-%token AFFICHER LIRE TABLEAU
+%token AFFICHER LIRE TABLEAU MATRICE
 %token INTERROGATION
 
 %token EGAL DIFF INFEG SUPEG INF SUP
@@ -160,6 +179,7 @@ int main(int argc, char** argv) {
 
 %type <nom> expression
 %type <nom> acces_tableau
+%type <nom> acces_matrice
 %type <code> assignment
 %type <code> switch_body
 %type <code> instruction
@@ -169,6 +189,7 @@ int main(int argc, char** argv) {
 %type <code> cas_blocks
 %type <code> defaut_block
 %type <code> declaration_tableau
+%type <code> declaration_matrice
 
 %left EGAL DIFF
 %left INF SUP INFEG SUPEG
@@ -214,11 +235,27 @@ instructions:
         free($2);
         $$ = buf;
     }
+    | instructions declaration_matrice {
+        char* buf = malloc(strlen($1) + strlen($2) + 1);
+        strcpy(buf, $1);
+        strcat(buf, $2);
+        free($1);
+        free($2);
+        $$ = buf;
+    }
 ;
 
 declaration_tableau:
     TABLEAU IDENTIFIANT CROCHET_OUVRANT NOMBRE CROCHET_FERMANT POINTVIRGULE {
         ajouter_tableau($2, $4);
+        free($2);
+        $$ = strdup(""); // Pas de code généré pour la déclaration
+    }
+;
+
+declaration_matrice:
+    MATRICE IDENTIFIANT CROCHET_OUVRANT NOMBRE CROCHET_FERMANT CROCHET_OUVRANT NOMBRE CROCHET_FERMANT POINTVIRGULE {
+        ajouter_matrice($2, $4, $7);
         free($2);
         $$ = strdup(""); // Pas de code généré pour la déclaration
     }
@@ -239,6 +276,12 @@ instruction:
         free($2);
     }
   | LIRE acces_tableau POINTVIRGULE {
+        char buf[256];
+        snprintf(buf, sizeof(buf), "scanf(\"%%d\", &%s);\n", $2);
+        $$ = strdup(buf);
+        free($2);
+    }
+  | LIRE acces_matrice POINTVIRGULE {
         char buf[256];
         snprintf(buf, sizeof(buf), "scanf(\"%%d\", &%s);\n", $2);
         $$ = strdup(buf);
@@ -265,6 +308,12 @@ instruction:
         free($2);
         $$ = strdup(buf);
     }
+  | AFFICHER acces_matrice POINTVIRGULE {
+        char buf[256];
+        snprintf(buf, sizeof(buf), "printf(\"%%d\\n\", %s);\n", $2);
+        free($2);
+        $$ = strdup(buf);
+    }
 ;
 
 assignment:
@@ -277,6 +326,13 @@ assignment:
         $$ = strdup(buf);
     }
   | acces_tableau ASSIGN expression {
+        char buf[256];
+        snprintf(buf, sizeof(buf), "%s = %s", $1, $3);
+        free($1);
+        free($3);
+        $$ = strdup(buf);
+    }
+  | acces_matrice ASSIGN expression {
         char buf[256];
         snprintf(buf, sizeof(buf), "%s = %s", $1, $3);
         free($1);
@@ -302,6 +358,28 @@ acces_tableau:
         sprintf(buf, "%s[%s]", $1, $3);
         free($1);
         free($3);
+        $$ = buf;
+    }
+;
+
+acces_matrice:
+    IDENTIFIANT CROCHET_OUVRANT expression CROCHET_FERMANT CROCHET_OUVRANT expression CROCHET_FERMANT {
+        // Vérifier que la variable existe comme matrice
+        Variable* var = trouver_variable($1);
+        if (!var) {
+            fprintf(stderr, "Erreur : matrice '%s' non déclarée\n", $1);
+            exit(1);
+        }
+        if (!var->est_matrice) {
+            fprintf(stderr, "Erreur : '%s' n'est pas une matrice\n", $1);
+            exit(1);
+        }
+        
+        char* buf = malloc(strlen($1) + strlen($3) + strlen($6) + 6);
+        sprintf(buf, "%s[%s][%s]", $1, $3, $6);
+        free($1);
+        free($3);
+        free($6);
         $$ = buf;
     }
 ;
@@ -371,6 +449,9 @@ expression:
         free($1);
     }
   | acces_tableau {
+        $$ = $1;
+    }
+    | acces_matrice {
         $$ = $1;
     }
   | NOMBRE {
